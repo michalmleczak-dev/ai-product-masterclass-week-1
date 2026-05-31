@@ -148,6 +148,16 @@ interface TrendPoint {
   label: string;
 }
 
+// Five category "bands" — middle mood per category, used to draw the
+// horizontal level guide-lines. Order matches the on-screen colour ramp.
+const LEVELS: Array<{ category: string; score: number; color: string }> = [
+  { category: "Positive", score: (15 - 1 - 1) / 14, color: "#F5C842" },
+  { category: "Calm", score: (15 - 1 - 4) / 14, color: "#A8D5BA" },
+  { category: "Neutral", score: (15 - 1 - 7) / 14, color: "#C9C9D3" },
+  { category: "Difficult", score: (15 - 1 - 10) / 14, color: "#E8856A" },
+  { category: "Intense", score: (15 - 1 - 13) / 14, color: "#C0392B" },
+];
+
 function TrendChart({
   points,
   startDate,
@@ -157,19 +167,19 @@ function TrendChart({
   startDate: string;
   endDate: string;
 }) {
-  const W = 600;
-  const H = 180;
-  const PAD_X = 10;
-  const PAD_TOP = 12;
-  const PAD_BOT = 22;
+  // viewBox proportions chosen to match the rendered aspect ratio, so circles
+  // stay round (preserveAspectRatio defaults to "xMidYMid meet" — no stretch).
+  const W = 400;
+  const H = 260;
+  const PAD_LEFT = 78; // room for category labels on the left
+  const PAD_RIGHT = 16;
+  const PAD_TOP = 16;
+  const PAD_BOT = 40;
 
-  const xToPx = (x: number) => PAD_X + x * (W - 2 * PAD_X);
-  const yToPx = (s: number) =>
-    PAD_TOP + (1 - s) * (H - PAD_TOP - PAD_BOT);
+  const xToPx = (x: number) => PAD_LEFT + x * (W - PAD_LEFT - PAD_RIGHT);
+  const yToPx = (s: number) => PAD_TOP + (1 - s) * (H - PAD_TOP - PAD_BOT);
 
-  // Smooth path using monotonic cubic-ish — keep it simple: catmull-rom-like
-  // tangents converted to bezier control points. Falls back to straight lines
-  // for 2 points.
+  // Smooth path through points
   const linePath = buildSmoothPath(
     points.map((p) => ({ x: xToPx(p.x), y: yToPx(p.score) }))
   );
@@ -187,12 +197,14 @@ function TrendChart({
 
   const stops = points.map((p) => ({ offset: p.x * 100, color: p.color }));
 
+  // Decide how often to label dates so they don't overlap. Aim for ~6 labels.
+  const tickStride = Math.max(1, Math.ceil(points.length / 6));
+
   return (
     <div className="rounded-xl border bg-card p-3">
       <svg
         viewBox={`0 0 ${W} ${H}`}
-        preserveAspectRatio="none"
-        className="block h-44 w-full"
+        className="block h-auto w-full"
         role="img"
         aria-label="Mood values plotted over the selected range"
       >
@@ -219,21 +231,41 @@ function TrendChart({
           </linearGradient>
         </defs>
 
-        {/* Baseline grid (very subtle) */}
+        {/* Y-axis level guide-lines, one per emotion category */}
+        {LEVELS.map((lvl) => {
+          const y = yToPx(lvl.score);
+          return (
+            <g key={lvl.category}>
+              <line
+                x1={PAD_LEFT}
+                x2={W - PAD_RIGHT}
+                y1={y}
+                y2={y}
+                stroke={lvl.color}
+                strokeWidth="1"
+                strokeDasharray="2 4"
+                opacity={0.5}
+              />
+              <text
+                x={PAD_LEFT - 8}
+                y={y + 4}
+                fontSize="11"
+                fill="#6B7280"
+                textAnchor="end"
+              >
+                {lvl.category}
+              </text>
+            </g>
+          );
+        })}
+
+        {/* Baseline (axis) */}
         <line
-          x1={PAD_X}
-          x2={W - PAD_X}
+          x1={PAD_LEFT}
+          x2={W - PAD_RIGHT}
           y1={bottomY}
           y2={bottomY}
           stroke="#E5E5E5"
-          strokeWidth="1"
-        />
-        <line
-          x1={PAD_X}
-          x2={W - PAD_X}
-          y1={PAD_TOP + (H - PAD_TOP - PAD_BOT) / 2}
-          y2={PAD_TOP + (H - PAD_TOP - PAD_BOT) / 2}
-          stroke="#F2F2F2"
           strokeWidth="1"
         />
 
@@ -244,17 +276,48 @@ function TrendChart({
           d={linePath}
           fill="none"
           stroke={`url(#${lineGradId})`}
-          strokeWidth="3"
+          strokeWidth="2.5"
           strokeLinejoin="round"
           strokeLinecap="round"
         />
-        {/* Markers */}
+
+        {/* X-axis ticks + date labels under every point (stride-thinned) */}
+        {points.map((p, i) => {
+          const cx = xToPx(p.x);
+          const showLabel =
+            i % tickStride === 0 || i === points.length - 1;
+          return (
+            <g key={`tick-${i}`}>
+              <line
+                x1={cx}
+                x2={cx}
+                y1={bottomY}
+                y2={bottomY + 4}
+                stroke="#D4D4D8"
+                strokeWidth="1"
+              />
+              {showLabel && (
+                <text
+                  x={cx}
+                  y={bottomY + 16}
+                  fontSize="10"
+                  fill="#6B7280"
+                  textAnchor="middle"
+                >
+                  {formatDateTick(p.date, i === 0)}
+                </text>
+              )}
+            </g>
+          );
+        })}
+
+        {/* Markers (drawn last so they sit above the line) */}
         {points.map((p, i) => (
           <circle
-            key={i}
+            key={`pt-${i}`}
             cx={xToPx(p.x)}
             cy={yToPx(p.score)}
-            r="4"
+            r="3.5"
             fill={p.color}
             stroke="#FFFFFF"
             strokeWidth="1.5"
@@ -264,39 +327,38 @@ function TrendChart({
             </title>
           </circle>
         ))}
-
-        {/* Axis labels */}
-        <text
-          x={PAD_X}
-          y={H - 6}
-          fontSize="10"
-          fill="#9CA3AF"
-          textAnchor="start"
-        >
-          {formatTick(startDate)}
-        </text>
-        <text
-          x={W - PAD_X}
-          y={H - 6}
-          fontSize="10"
-          fill="#9CA3AF"
-          textAnchor="end"
-        >
-          {formatTick(endDate)}
-        </text>
       </svg>
     </div>
   );
 }
 
-function formatTick(iso: string): string {
-  const [y, m, d] = iso.split("-").map(Number);
-  const months = [
-    "Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec",
-  ];
-  return `${d} ${months[m - 1]}${
-    y !== new Date().getFullYear() ? ` '${String(y).slice(2)}` : ""
-  }`;
+const TICK_MONTHS = [
+  "Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec",
+];
+
+function ordinalSuffix(n: number): string {
+  const v = n % 100;
+  if (v >= 11 && v <= 13) return "th";
+  switch (n % 10) {
+    case 1:
+      return "st";
+    case 2:
+      return "nd";
+    case 3:
+      return "rd";
+    default:
+      return "th";
+  }
+}
+
+/**
+ * First tick (`includeMonth=true`) shows the month name, e.g. "May, 25th".
+ * Subsequent ticks show only the ordinal day, e.g. "26th", "27th".
+ */
+function formatDateTick(iso: string, includeMonth: boolean): string {
+  const [, m, d] = iso.split("-").map(Number);
+  const ord = `${d}${ordinalSuffix(d)}`;
+  return includeMonth ? `${TICK_MONTHS[m - 1]}, ${ord}` : ord;
 }
 
 // Build a smooth cubic Bezier path through points. Tension ≈ Catmull-Rom.

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { todayISO } from "@/lib/date";
 import { getMoodDef } from "@/lib/moods";
+import { ensureSeedEntries } from "@/lib/seed";
 import { Entry, loadEntries, saveEntries } from "@/lib/storage";
 
 export interface UpsertInput {
@@ -22,7 +23,13 @@ export function useJournal(): UseJournalResult {
   const [entries, setEntries] = useState<Entry[] | null>(null);
 
   useEffect(() => {
-    setEntries(loadEntries());
+    const fromStorage = loadEntries();
+    const { entries: withSeeds, changed } = ensureSeedEntries(fromStorage);
+    if (changed) {
+      // Persist seeds immediately so they're stable across reloads.
+      saveEntries(withSeeds);
+    }
+    setEntries(withSeeds);
   }, []);
 
   const upsertToday = useCallback(
