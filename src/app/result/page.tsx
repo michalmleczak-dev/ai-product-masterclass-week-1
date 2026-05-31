@@ -1,32 +1,62 @@
 "use client";
 
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 
-import { MoodBlob } from "@/components/MoodBlob";
+import { MoodIllustration } from "@/components/MoodIllustration";
 import { useJournal } from "@/hooks/useJournal";
+import { todayISO } from "@/lib/date";
 import { getMoodDef } from "@/lib/moods";
 import { stripHtml, truncate } from "@/lib/html";
+import type { Entry } from "@/lib/storage";
 
 export default function ResultPage() {
-  const router = useRouter();
-  const { todayEntry, ready } = useJournal();
+  return (
+    <Suspense
+      fallback={
+        <main className="px-5 py-10 text-sm text-muted-foreground">Loading…</main>
+      }
+    >
+      <ResultPageInner />
+    </Suspense>
+  );
+}
 
+function ResultPageInner() {
+  const router = useRouter();
+  const search = useSearchParams();
+  const requestedId = search.get("id");
+  const { entries, todayEntry, ready } = useJournal();
+
+  // Resolve the entry to show: by ?id= if provided, else fall back to today's entry.
+  const entry: Entry | null = (() => {
+    if (!ready || entries === null) return null;
+    if (requestedId) {
+      return entries.find((e) => e.id === requestedId) ?? null;
+    }
+    return todayEntry;
+  })();
+
+  // Once we know there's nothing to show, bounce back home.
   useEffect(() => {
-    if (ready && !todayEntry) {
+    if (!ready) return;
+    if (requestedId) {
+      const found = (entries ?? []).some((e) => e.id === requestedId);
+      if (!found) router.replace("/entries");
+    } else if (!todayEntry) {
       router.replace("/");
     }
-  }, [ready, todayEntry, router]);
+  }, [ready, requestedId, entries, todayEntry, router]);
 
-  if (!todayEntry) {
+  if (!entry) {
     return (
       <main className="px-5 py-10 text-sm text-muted-foreground">Loading…</main>
     );
   }
 
-  const def = getMoodDef(todayEntry.moodLabel);
+  const def = getMoodDef(entry.moodLabel);
   if (!def) {
     return (
       <main className="px-5 py-10 text-sm text-muted-foreground">
@@ -35,7 +65,8 @@ export default function ResultPage() {
     );
   }
 
-  const preview = truncate(stripHtml(todayEntry.text), 100);
+  const preview = truncate(stripHtml(entry.text), 200);
+  const isToday = entry.date === todayISO();
 
   return (
     <>
@@ -51,7 +82,7 @@ export default function ResultPage() {
       >
         <div className="flex items-center justify-between">
           <Link
-            href="/"
+            href={requestedId ? "/entries" : "/"}
             aria-label="Back"
             className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-black/10 hover:bg-black/20"
             style={{ color: def.text }}
@@ -65,15 +96,21 @@ export default function ResultPage() {
         </div>
 
         <div className="flex flex-1 flex-col items-center justify-center text-center">
-          <MoodBlob face={def.face} color="rgba(255,255,255,0.35)" size={180} />
-          <h1 className="mt-6 text-4xl font-bold tracking-tight">
-            {todayEntry.moodLabel}
+          <MoodIllustration label={entry.moodLabel} size={180} />
+          <h1 className="mt-4 text-4xl font-bold tracking-tight">
+            {entry.moodLabel}
           </h1>
+          <p
+            className="mt-2 text-xs uppercase tracking-wider opacity-80"
+            suppressHydrationWarning
+          >
+            {isToday ? "Today" : entry.date}
+          </p>
           <p className="mt-4 max-w-[300px] text-sm leading-relaxed opacity-90">
             {def.recommendation}
           </p>
           {preview && (
-            <p className="mt-6 max-w-[300px] text-sm italic opacity-80">
+            <p className="mt-6 max-w-[320px] text-sm italic opacity-85">
               &ldquo;{preview}&rdquo;
             </p>
           )}

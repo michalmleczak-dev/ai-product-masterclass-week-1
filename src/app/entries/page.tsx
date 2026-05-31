@@ -1,18 +1,57 @@
 "use client";
 
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { EntryCard } from "@/components/EntryCard";
+import { MoodTrend } from "@/components/MoodTrend";
 import { useJournal } from "@/hooks/useJournal";
+
+const PAGE_SIZE = 5;
 
 export default function EntriesPage() {
   const { entries, ready } = useJournal();
 
-  const sorted = (entries ?? [])
-    .slice()
-    .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+  const sorted = useMemo(
+    () =>
+      (entries ?? [])
+        .slice()
+        .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0)),
+    [entries]
+  );
+
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  // Reset visible window if the underlying list shrinks (e.g. after a clear).
+  useEffect(() => {
+    setVisibleCount((prev) => Math.min(Math.max(prev, PAGE_SIZE), sorted.length || PAGE_SIZE));
+  }, [sorted.length]);
+
+  // Infinite-scroll: load more when the sentinel enters the viewport.
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    if (visibleCount >= sorted.length) return;
+
+    const io = new IntersectionObserver(
+      (entriesObs) => {
+        for (const entry of entriesObs) {
+          if (entry.isIntersecting) {
+            setVisibleCount((c) => Math.min(c + PAGE_SIZE, sorted.length));
+          }
+        }
+      },
+      { rootMargin: "120px 0px" }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [visibleCount, sorted.length]);
+
+  const visible = sorted.slice(0, visibleCount);
+  const hasMore = visibleCount < sorted.length;
 
   return (
     <main className="px-5 py-6">
@@ -45,11 +84,32 @@ export default function EntriesPage() {
           </Button>
         </div>
       ) : (
-        <div className="space-y-3">
-          {sorted.map((entry) => (
-            <EntryCard key={entry.id} entry={entry} />
-          ))}
-        </div>
+        <>
+          <div className="mb-8">
+            <MoodTrend entries={sorted} />
+          </div>
+
+          <div className="space-y-3">
+            {visible.map((entry) => (
+              <EntryCard key={entry.id} entry={entry} />
+            ))}
+          </div>
+
+          {hasMore && (
+            <div
+              ref={sentinelRef}
+              className="mt-4 flex items-center justify-center py-4 text-xs text-muted-foreground"
+              aria-live="polite"
+            >
+              Loading more…
+            </div>
+          )}
+          {!hasMore && sorted.length > PAGE_SIZE && (
+            <p className="mt-4 text-center text-xs text-muted-foreground">
+              You&apos;ve reached the end ({sorted.length} entries).
+            </p>
+          )}
+        </>
       )}
     </main>
   );

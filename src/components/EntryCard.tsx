@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 
 import { MoodPill } from "@/components/MoodPill";
@@ -14,13 +15,23 @@ interface EntryCardProps {
 export function EntryCard({ entry }: EntryCardProps) {
   const preview = truncate(stripHtml(entry.text), 80);
   return (
-    <div className="flex items-center gap-3 rounded-xl border bg-card p-4 shadow-sm">
+    <Link
+      href={`/result?id=${encodeURIComponent(entry.id)}`}
+      className="flex items-center gap-3 rounded-xl border bg-card p-4 shadow-sm transition-colors hover:bg-accent"
+      aria-label={`Open entry from ${formatPrettyDate(entry.date)}`}
+    >
       <div className="flex-1 space-y-2">
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">
             {formatPrettyDate(entry.date)}
           </span>
-          <MoodPill label={entry.moodLabel} selected size="sm" asButton={false} />
+          <MoodPill
+            label={entry.moodLabel}
+            selected
+            size="sm"
+            asButton={false}
+            withEmoji
+          />
         </div>
         <p className="text-sm text-foreground/80">
           {preview || (
@@ -29,6 +40,6 @@ export function EntryCard({ entry }: EntryCardProps) {
         </p>
       </div>
       <ChevronRight className="h-4 w-4 text-muted-foreground" />
-    </div>
+    </Link>
   );
 }

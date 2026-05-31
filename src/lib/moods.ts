@@ -1,7 +1,7 @@
 export type MoodCategory =
   | "Positive"
   | "Calm"
-  | "Low"
+  | "Neutral"
   | "Difficult"
   | "Intense";
 
@@ -13,52 +13,59 @@ export interface MoodCategoryDef {
   bg: string;
   text: string;
   face: MoodFace;
+  /** Public path to the illustration asset for this category. */
+  image: string;
   recommendation: string;
 }
 
 export const MOOD_CATEGORIES: MoodCategoryDef[] = [
   {
     category: "Positive",
-    labels: ["Joyful", "Cheerful", "Content", "Excited", "Grateful"],
+    labels: ["Excited", "Joyful", "Content"],
     bg: "#F5C842",
     text: "#1A1A1A",
     face: "happy",
+    image: "/moods/joy.jpeg",
     recommendation:
       "You're in a great headspace. Use this energy — reach out to someone, start that task, or simply enjoy the moment.",
   },
   {
     category: "Calm",
-    labels: ["Peaceful", "Relaxed", "Focused", "Reflective"],
+    labels: ["Relaxed", "Focused", "Reflective"],
     bg: "#A8D5BA",
     text: "#1A1A1A",
     face: "happy",
+    image: "/moods/calm.jpeg",
     recommendation:
       "Steady and clear. A good time to reflect, plan, or do deep work.",
   },
   {
-    category: "Low",
-    labels: ["Tired", "Bored", "Indifferent", "Drained"],
+    category: "Neutral",
+    labels: ["Indifferent", "Bored", "Tired"],
     bg: "#C9C9D3",
     text: "#1A1A1A",
     face: "neutral",
+    image: "/moods/low.jpeg",
     recommendation:
-      "Low energy is a signal, not a flaw. Rest, a short walk, or a change of scene can shift things.",
+      "Steady, in-between energy. Not a flaw — rest, a short walk, or a change of scene can nudge things either way.",
   },
   {
     category: "Difficult",
-    labels: ["Anxious", "Sad", "Frustrated", "Overwhelmed"],
+    labels: ["Drained", "Sad", "Anxious"],
     bg: "#E8856A",
     text: "#FFFFFF",
     face: "sad",
+    image: "/moods/difficult.jpeg",
     recommendation:
       "Something's weighing on you. Writing it out is already a step. Be kind to yourself today.",
   },
   {
     category: "Intense",
-    labels: ["Angry", "Despairing", "Heartbroken", "Devastated"],
+    labels: ["Overwhelmed", "Frustrated", "Angry"],
     bg: "#C0392B",
     text: "#FFFFFF",
     face: "angry",
+    image: "/moods/intense.jpeg",
     recommendation:
       "This is a hard moment. Take a breath. You don't have to solve everything right now — just get through today.",
   },
@@ -69,6 +76,38 @@ const LABEL_TO_DEF = new Map<string, MoodCategoryDef>(
     def.labels.map((label) => [label, def] as const)
   )
 );
+
+/**
+ * One emoji per mood label. Rendered as text in the UI (system color emoji),
+ * scales freely with font-size.
+ */
+export const LABEL_EMOJI: Record<string, string> = {
+  // Positive
+  Excited: "🤩",
+  Joyful: "😀",
+  Content: "🙂",
+  // Calm
+  Relaxed: "😎",
+  Focused: "🧐",
+  Reflective: "🤔",
+  // Neutral
+  Indifferent: "😐",
+  Bored: "😑",
+  Tired: "🥱",
+  // Difficult
+  Drained: "😫",
+  Sad: "😢",
+  Anxious: "😰",
+  // Intense
+  Overwhelmed: "🤯",
+  Frustrated: "😤",
+  Angry: "😡",
+};
+
+export function getMoodEmoji(label: string | null | undefined): string {
+  if (!label) return "🫥";
+  return LABEL_EMOJI[label] ?? "🫥";
+}
 
 export function getMoodDef(label: string): MoodCategoryDef | undefined {
   return LABEL_TO_DEF.get(label);
