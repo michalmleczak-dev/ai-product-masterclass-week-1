@@ -26,7 +26,7 @@ pnpm install
 pnpm dev
 ```
 
-Open http://localhost:3000 — the root redirects to `/today`.
+Open http://localhost:3000 — the root is Screen 1 (Today's Entry).
 
 Build sanity check:
 
@@ -37,11 +37,11 @@ pnpm start
 
 ## Manual test plan
 
-1. `/today` — pick **Cheerful**, type a short reflection with **bold** and a list → Save.
-2. `/today/result` — yellow full-bleed background, happy blob, recommendation copy for *Positive*, italic preview of first 100 chars.
+1. `/` — pick **Cheerful**, type a short reflection with **bold** and a list → Save.
+2. `/result` — yellow full-bleed background, happy blob, recommendation copy for *Positive*, italic preview of first 100 chars.
 3. Click **View all entries** → `/entries` shows one card.
 4. Hard refresh — entry persists.
-5. Go back to `/today` — the form is pre-filled, button says **Update entry**. Change mood to **Anxious** → coral background, sad blob. List still has one entry (same date, updated).
+5. Go back to `/` — the form is pre-filled, button says **Update entry**. Change mood to **Anxious** → coral background, sad blob. List still has one entry (same date, updated).
 6. `localStorage.clear()` in DevTools → `/entries` shows the empty state.
 
 ## Deploying to Vercel
@@ -61,9 +61,8 @@ src/
 ├── app/
 │   ├── layout.tsx              max-w-[390px] wrapper + Inter font
 │   ├── globals.css             Tailwind + TipTap styles
-│   ├── page.tsx                redirect → /today
-│   ├── today/page.tsx          Screen 1 — mood picker + TipTap
-│   ├── today/result/page.tsx   Screen 2 — full-bleed visualization
+│   ├── page.tsx                Screen 1 — mood picker + TipTap
+│   ├── result/page.tsx         Screen 2 — full-bleed visualization
 │   └── entries/page.tsx        Screen 3 — list / empty state
 ├── components/
 │   ├── ui/{button,card,badge}.tsx   shadcn-style primitives

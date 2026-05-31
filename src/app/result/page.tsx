@@ -16,7 +16,7 @@ export default function ResultPage() {
 
   useEffect(() => {
     if (ready && !todayEntry) {
-      router.replace("/today");
+      router.replace("/");
     }
   }, [ready, todayEntry, router]);
 
@@ -51,7 +51,7 @@ export default function ResultPage() {
       >
         <div className="flex items-center justify-between">
           <Link
-            href="/today"
+            href="/"
             aria-label="Back"
             className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-black/10 hover:bg-black/20"
             style={{ color: def.text }}

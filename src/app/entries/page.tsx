@@ -18,7 +18,7 @@ export default function EntriesPage() {
     <main className="px-5 py-6">
       <header className="mb-6 flex items-center gap-3">
         <Link
-          href="/today"
+          href="/"
           aria-label="Back"
           className="inline-flex h-9 w-9 items-center justify-center rounded-full border hover:bg-accent"
         >
@@ -41,7 +41,7 @@ export default function EntriesPage() {
             </p>
           </div>
           <Button asChild>
-            <Link href="/today">Today&apos;s entry</Link>
+            <Link href="/">Today&apos;s entry</Link>
           </Button>
         </div>
       ) : (

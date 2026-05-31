@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Bold, Italic, List, ListOrdered } from "lucide-react";
@@ -39,6 +40,19 @@ export function TipTapEditor({
       onChange(editor.getHTML());
     },
   });
+
+  // Sync external value changes (e.g. hydration from localStorage)
+  // into the editor without re-emitting onUpdate.
+  useEffect(() => {
+    if (!editor) return;
+    const current = editor.getHTML();
+    if (value !== current) {
+      editor.commands.setContent(value || "", false);
+    }
+    // We only want this to react to `value` changing externally,
+    // so we intentionally omit `editor` from deps to avoid loops.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
 
   if (!editor) {
     return (
