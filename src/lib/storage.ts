@@ -1,6 +1,5 @@
 import type { MoodCategory } from "./moods";
-
-export const STORAGE_KEY = "mood_journal_entries";
+import { supabase, type EntryRow } from "./supabase";
 
 export interface Entry {
   id: string;
@@ -12,24 +11,60 @@ export interface Entry {
   updatedAt: string;
 }
 
-export function loadEntries(): Entry[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed as Entry[];
-  } catch {
-    return [];
-  }
+function fromRow(row: EntryRow): Entry {
+  return {
+    id: row.id,
+    date: row.date,
+    moodLabel: row.mood_label,
+    moodCategory: row.mood_category as MoodCategory,
+    text: row.text,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
 }
 
-export function saveEntries(entries: Entry[]): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
-  } catch {
-    // Quota or serialization issue — silently ignore in Phase 1.
+function toRow(e: Entry): EntryRow {
+  return {
+    id: e.id,
+    date: e.date,
+    mood_label: e.moodLabel,
+    mood_category: e.moodCategory,
+    text: e.text,
+    created_at: e.createdAt,
+    updated_at: e.updatedAt,
+  };
+}
+
+export async function loadEntries(): Promise<Entry[]> {
+  const { data, error } = await supabase
+    .from("entries")
+    .select("*")
+    .order("date", { ascending: false });
+  if (error) {
+    console.error("[storage] loadEntries failed", error);
+    return [];
+  }
+  return (data ?? []).map(fromRow);
+}
+
+export async function upsertEntry(entry: Entry): Promise<Entry> {
+  const { data, error } = await supabase
+    .from("entries")
+    .upsert(toRow(entry), { onConflict: "user_id,date" })
+    .select()
+    .single();
+  if (error) {
+    throw error;
+  }
+  return fromRow(data as EntryRow);
+}
+
+export async function upsertEntries(entries: Entry[]): Promise<void> {
+  if (entries.length === 0) return;
+  const { error } = await supabase
+    .from("entries")
+    .upsert(entries.map(toRow), { onConflict: "user_id,date" });
+  if (error) {
+    console.error("[storage] upsertEntries failed", error);
   }
 }

@@ -29,9 +29,9 @@ export default function TodayPage() {
 
   const isUpdate = Boolean(todayEntry);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!moodLabel) return;
-    upsertToday({ moodLabel, text });
+    await upsertToday({ moodLabel, text });
     router.push("/result");
   };
 

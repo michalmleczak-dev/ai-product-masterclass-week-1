@@ -7,17 +7,24 @@ import { MoodPill } from "@/components/MoodPill";
 import { formatPrettyDate } from "@/lib/date";
 import { stripHtml, truncate } from "@/lib/html";
 import type { Entry } from "@/lib/storage";
+import { cn } from "@/lib/utils";
 
 interface EntryCardProps {
   entry: Entry;
+  /** Highlight as the currently viewed entry (sidebar use). */
+  active?: boolean;
 }
 
-export function EntryCard({ entry }: EntryCardProps) {
+export function EntryCard({ entry, active = false }: EntryCardProps) {
   const preview = truncate(stripHtml(entry.text), 80);
   return (
     <Link
       href={`/result?id=${encodeURIComponent(entry.id)}`}
-      className="flex items-center gap-3 rounded-xl border bg-card p-4 shadow-sm transition-colors hover:bg-accent"
+      className={cn(
+        "flex items-center gap-3 rounded-xl border bg-card p-4 shadow-sm transition-colors hover:bg-accent",
+        active && "border-foreground/40 bg-accent ring-1 ring-foreground/10"
+      )}
+      aria-current={active ? "page" : undefined}
       aria-label={`Open entry from ${formatPrettyDate(entry.date)}`}
     >
       <div className="flex-1 space-y-2">

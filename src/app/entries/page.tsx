@@ -7,12 +7,14 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EntryCard } from "@/components/EntryCard";
 import { MoodTrend } from "@/components/MoodTrend";
+import { useAuth } from "@/hooks/useAuth";
 import { useJournal } from "@/hooks/useJournal";
 
 const PAGE_SIZE = 5;
 
 export default function EntriesPage() {
   const { entries, ready } = useJournal();
+  const { signOut } = useAuth();
 
   const sorted = useMemo(
     () =>
@@ -64,6 +66,12 @@ export default function EntriesPage() {
           <ArrowLeft className="h-4 w-4" />
         </Link>
         <h1 className="text-2xl font-bold leading-tight">Your Journal</h1>
+        <button
+          onClick={signOut}
+          className="ml-auto text-xs text-muted-foreground underline-offset-4 hover:underline"
+        >
+          Sign out
+        </button>
       </header>
 
       {!ready ? (
@@ -89,26 +97,36 @@ export default function EntriesPage() {
             <MoodTrend entries={sorted} />
           </div>
 
-          <div className="space-y-3">
-            {visible.map((entry) => (
-              <EntryCard key={entry.id} entry={entry} />
-            ))}
+          {/* On desktop the sidebar already lists every entry; only the
+              mood trend lives in the main area. The list (with infinite
+              scroll) is mobile-only. */}
+          <div className="md:hidden">
+            <div className="space-y-3">
+              {visible.map((entry) => (
+                <EntryCard key={entry.id} entry={entry} />
+              ))}
+            </div>
+
+            {hasMore && (
+              <div
+                ref={sentinelRef}
+                className="mt-4 flex items-center justify-center py-4 text-xs text-muted-foreground"
+                aria-live="polite"
+              >
+                Loading more…
+              </div>
+            )}
+            {!hasMore && sorted.length > PAGE_SIZE && (
+              <p className="mt-4 text-center text-xs text-muted-foreground">
+                You&apos;ve reached the end ({sorted.length} entries).
+              </p>
+            )}
           </div>
 
-          {hasMore && (
-            <div
-              ref={sentinelRef}
-              className="mt-4 flex items-center justify-center py-4 text-xs text-muted-foreground"
-              aria-live="polite"
-            >
-              Loading more…
-            </div>
-          )}
-          {!hasMore && sorted.length > PAGE_SIZE && (
-            <p className="mt-4 text-center text-xs text-muted-foreground">
-              You&apos;ve reached the end ({sorted.length} entries).
-            </p>
-          )}
+          {/* Desktop-only hint pointing at the sidebar. */}
+          <p className="hidden text-xs text-muted-foreground md:block">
+            Pick an entry from the list on the left to view or update it.
+          </p>
         </>
       )}
     </main>
