@@ -4,7 +4,7 @@ import { Inter } from "next/font/google";
 import { Suspense } from "react";
 
 import { AuthGate } from "@/components/AuthGate";
-import { DesktopSidebar } from "@/components/DesktopSidebar";
+import { LayoutShell } from "@/components/LayoutShell";
 import { TherapistPanel } from "@/components/TherapistPanel";
 import "./globals.css";
 
@@ -24,14 +24,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.className} bg-white text-foreground`}>
         <AuthGate>
-          <div className="md:flex md:min-h-dvh">
-            <DesktopSidebar />
-            <div className="mx-auto min-h-dvh w-full max-w-[390px] md:mx-0 md:max-w-none md:flex-1">
-              <div className="mx-auto w-full max-w-[390px] md:max-w-[640px] md:px-4">
-                {children}
-              </div>
-            </div>
-          </div>
+          <LayoutShell>{children}</LayoutShell>
           <Suspense fallback={null}>
             <TherapistPanel />
           </Suspense>

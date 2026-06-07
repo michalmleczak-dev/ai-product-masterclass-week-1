@@ -3,7 +3,7 @@
 import { Suspense, useMemo } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { PenSquare } from "lucide-react";
+import { FileText, PenSquare } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { EntryCard } from "@/components/EntryCard";
@@ -49,16 +49,30 @@ function SidebarInner() {
             Your Journal
           </h2>
         </div>
-        <Button
-          asChild
-          size="sm"
-          variant={pathname === "/" ? "default" : "outline"}
-          className="h-8"
-        >
-          <Link href="/" className="inline-flex items-center gap-1.5">
-            <PenSquare className="h-3.5 w-3.5" /> Today
+        <div className="flex items-center gap-2">
+          <Link
+            href="/docs"
+            title="API Documentation"
+            aria-label="API Documentation"
+            className={`inline-flex h-8 w-8 items-center justify-center rounded-md border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground ${
+              pathname === "/docs"
+                ? "border-foreground/30 bg-muted text-foreground"
+                : "border-input"
+            }`}
+          >
+            <FileText className="h-3.5 w-3.5" />
           </Link>
-        </Button>
+          <Button
+            asChild
+            size="sm"
+            variant={pathname === "/" ? "default" : "outline"}
+            className="h-8"
+          >
+            <Link href="/" className="inline-flex items-center gap-1.5">
+              <PenSquare className="h-3.5 w-3.5" /> Today
+            </Link>
+          </Button>
+        </div>
       </header>
       <div className="flex-1 space-y-2 overflow-y-auto px-3 py-3">
         {!ready ? (
