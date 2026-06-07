@@ -1,6 +1,5 @@
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-
 import { stripHtml, truncate } from "@/lib/html";
+import { makeUserClient } from "@/lib/supabase-server";
 
 export interface ToolDef {
   type: "function";
@@ -57,15 +56,6 @@ const CATEGORY_SCORE: Record<string, number> = {
   Difficult: -2,
   Intense: -3,
 };
-
-function makeUserClient(accessToken: string): SupabaseClient {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-  return createClient(url, key, {
-    global: { headers: { Authorization: `Bearer ${accessToken}` } },
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-}
 
 interface EntryRow {
   id: string;
