@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { MoodScale } from "@/components/MoodScale";
+import { JOURNAL_VOICE_INPUT_EVENT } from "@/components/TherapistPanel";
 import { TipTapEditor } from "@/components/TipTapEditor";
 import { useJournal } from "@/hooks/useJournal";
 import { formatTodayLong } from "@/lib/date";
@@ -26,6 +27,20 @@ export default function TodayPage() {
       setHydrated(true);
     }
   }, [ready, hydrated, todayEntry]);
+
+  useEffect(() => {
+    const onVoice = (e: Event) => {
+      const detail = (e as CustomEvent<{ text: string }>).detail;
+      const incoming = detail?.text?.trim();
+      if (!incoming) return;
+      setText((prev) => {
+        const block = `<p>${escapeHtml(incoming)}</p>`;
+        return prev && prev.trim() ? `${prev}${block}` : block;
+      });
+    };
+    window.addEventListener(JOURNAL_VOICE_INPUT_EVENT, onVoice);
+    return () => window.removeEventListener(JOURNAL_VOICE_INPUT_EVENT, onVoice);
+  }, []);
 
   const isUpdate = Boolean(todayEntry);
 
@@ -54,13 +69,7 @@ export default function TodayPage() {
         <TipTapEditor value={text} onChange={setText} />
       </section>
 
-      <div className="flex items-center justify-between gap-3">
-        <Link
-          href="/entries"
-          className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-        >
-          View all entries
-        </Link>
+      <div className="flex items-center gap-4">
         <Button
           onClick={handleSave}
           disabled={!moodLabel}
@@ -68,7 +77,20 @@ export default function TodayPage() {
         >
           {isUpdate ? "Update entry" : "Save"}
         </Button>
+        <Link
+          href="/entries"
+          className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+        >
+          View all entries
+        </Link>
       </div>
     </main>
   );
+}
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }

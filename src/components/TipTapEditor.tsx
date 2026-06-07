@@ -1,13 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Bold, Italic, List, ListOrdered } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { useAudioRecorder } from "@/hooks/useAudioRecorder";
-import { MicButton } from "@/components/MicButton";
 
 interface TipTapEditorProps {
   value: string;
@@ -20,11 +18,6 @@ export function TipTapEditor({
   onChange,
   placeholder = "What's on your mind?",
 }: TipTapEditorProps) {
-  const recorder = useAudioRecorder();
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [flash, setFlash] = useState(false);
-  const abortedRef = useRef(false);
-
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
@@ -61,88 +54,6 @@ export function TipTapEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
 
-  // Auto-clear transient status messages after 3s
-  useEffect(() => {
-    if (!statusMessage) return;
-    const id = setTimeout(() => setStatusMessage(null), 3000);
-    return () => clearTimeout(id);
-  }, [statusMessage]);
-
-  // Surface recorder errors as status messages
-  useEffect(() => {
-    if (recorder.state === "error" && recorder.error) {
-      setStatusMessage(recorder.error);
-      recorder.reset();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recorder.state, recorder.error]);
-
-  const handleStartRecording = async () => {
-    abortedRef.current = false;
-    setStatusMessage(null);
-    await recorder.start();
-  };
-
-  const handleStopRecording = async () => {
-    const blob = await recorder.stop();
-    if (!blob || blob.size === 0) {
-      recorder.reset();
-      setStatusMessage("Nagranie jest puste.");
-      return;
-    }
-
-    recorder.setProcessing();
-
-    try {
-      const ext = (recorder.mimeType ?? "audio/webm").includes("mp4")
-        ? "mp4"
-        : "webm";
-      const form = new FormData();
-      form.append("file", blob, `voice-note.${ext}`);
-
-      const res = await fetch("/api/transcribe", {
-        method: "POST",
-        body: form,
-      });
-
-      if (abortedRef.current) return;
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        if (res.status === 413) {
-          setStatusMessage("Nagranie zbyt długie (max ~25 MB).");
-        } else {
-          setStatusMessage(
-            (data as { error?: string })?.error ??
-              "Nie udało się przetworzyć — spróbuj ponownie."
-          );
-        }
-        recorder.reset();
-        return;
-      }
-
-      const { text } = (await res.json()) as { text: string };
-      if (!text || !text.trim()) {
-        setStatusMessage("Nie rozpoznano mowy.");
-        recorder.reset();
-        return;
-      }
-
-      if (editor && !editor.isDestroyed) {
-        editor.chain().focus().insertContent(text.trim() + " ").run();
-        setFlash(true);
-        setTimeout(() => setFlash(false), 500);
-      }
-      recorder.reset();
-    } catch (err) {
-      console.error(err);
-      if (!abortedRef.current) {
-        setStatusMessage("Błąd sieci — spróbuj ponownie.");
-        recorder.reset();
-      }
-    }
-  };
-
   if (!editor) {
     return (
       <div
@@ -157,9 +68,6 @@ export function TipTapEditor({
       "inline-flex h-8 w-8 items-center justify-center rounded-md border border-transparent text-muted-foreground hover:bg-accent",
       active && "border-input bg-accent text-foreground"
     );
-
-  const micDisabled =
-    recorder.state === "processing" || !editor || editor.isDestroyed;
 
   return (
     <div className="space-y-2">
@@ -196,32 +104,10 @@ export function TipTapEditor({
         >
           <ListOrdered className="h-4 w-4" />
         </button>
-        <div className="mx-1 h-5 w-px bg-border" />
-        <MicButton
-          state={recorder.state}
-          durationMs={recorder.durationMs}
-          disabled={micDisabled}
-          onStart={handleStartRecording}
-          onStop={handleStopRecording}
-        />
       </div>
-      <div
-        className={cn(
-          "rounded-md transition-colors duration-500",
-          flash && "ring-2 ring-green-400 ring-offset-1"
-        )}
-      >
+      <div className="rounded-md">
         <EditorContent editor={editor} />
       </div>
-      {statusMessage && (
-        <p
-          role="status"
-          className="text-xs text-muted-foreground"
-          data-testid="mic-status"
-        >
-          {statusMessage}
-        </p>
-      )}
     </div>
   );
 }
